@@ -1,0 +1,408 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Disk Scheduling Simulator</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Poppins', sans-serif;
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            min-height: 100vh;
+            padding: 40px 20px;
+            color: #fff;
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            text-align: center;
+            font-size: 2.5em;
+            margin-bottom: 40px;
+            color: #fff;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            animation: fadeIn 1s ease-in;
+        }
+
+        .input-section {
+            background: rgba(255, 255, 255, 0.95);
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            margin-bottom: 40px;
+            animation: slideUp 0.8s ease-out;
+        }
+
+        .input-group {
+            margin: 20px 0;
+            position: relative;
+        }
+
+        label {
+            color: #2c3e50;
+            font-weight: 600;
+            display: block;
+            margin-bottom: 8px;
+            font-size: 1.1em;
+        }
+
+        input {
+            width: 100%;
+            padding: 12px 15px;
+            border: none;
+            border-radius: 8px;
+            background: #f0f3f6;
+            font-size: 1em;
+            transition: all 0.3s ease;
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.05);
+        }
+
+        input:focus {
+            outline: none;
+            background: #fff;
+            box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.3);
+        }
+
+        .button-container {
+            text-align: center;
+            margin-top: 30px;
+        }
+
+        button {
+            background: linear-gradient(45deg, #00c6ff, #0072ff);
+            padding: 12px 40px;
+            border: none;
+            border-radius: 25px;
+            color: white;
+            font-weight: 600;
+            font-size: 1.1em;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 5px 15px rgba(0, 114, 255, 0.4);
+        }
+
+        button:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 25px rgba(0, 114, 255, 0.6);
+        }
+
+        .results {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 25px;
+            margin-top: 20px;
+        }
+
+        .algorithm-result {
+            background: rgba(255, 255, 255, 0.95);
+            padding: 20px;
+            border-radius: 15px;
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.15);
+            animation: fadeInUp 0.5s ease-out;
+            animation-fill-mode: backwards;
+        }
+
+        .algorithm-result:nth-child(1) { animation-delay: 0.1s; }
+        .algorithm-result:nth-child(2) { animation-delay: 0.2s; }
+        .algorithm-result:nth-child(3) { animation-delay: 0.3s; }
+        .algorithm-result:nth-child(4) { animation-delay: 0.4s; }
+        .algorithm-result:nth-child(5) { animation-delay: 0.5s; }
+        .algorithm-result:nth-child(6) { animation-delay: 0.6s; }
+
+        .algorithm-result h3 {
+            color: #1e3c72;
+            font-size: 1.3em;
+            margin-bottom: 15px;
+            padding-bottom: 8px;
+            border-bottom: 3px solid #00c6ff;
+        }
+
+        .algorithm-result p {
+            color: #34495e;
+            margin: 8px 0;
+            font-size: 0.95em;
+        }
+
+        .seek-sequence {
+            background: #f0f3f6;
+            padding: 10px;
+            border-radius: 8px;
+            color: #2c3e50;
+            font-size: 0.9em;
+            margin-top: 15px;
+            line-height: 1.4;
+            word-wrap: break-word;
+        }
+
+        .error {
+            background: rgba(231, 76, 60, 0.9);
+            color: white;
+            padding: 15px;
+            border-radius: 10px;
+            text-align: center;
+            margin: 20px 0;
+            box-shadow: 0 5px 15px rgba(231, 76, 60, 0.4);
+            animation: shake 0.5s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        @keyframes slideUp {
+            from { transform: translateY(50px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+
+        @keyframes fadeInUp {
+            from { transform: translateY(20px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-5px); }
+            75% { transform: translateX(5px); }
+        }
+
+        @media (max-width: 768px) {
+            .container { padding: 20px 15px; }
+            h1 { font-size: 2em; }
+            .input-section { padding: 20px; }
+            .results { grid-template-columns: 1fr; }
+        }
+    </style>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="container">
+        <h1>Disk Scheduling Simulator</h1>
+        
+        <div class="input-section">
+            <div class="input-group">
+                <label for="numRequests">Number of I/O Requests</label>
+                <input type="number" id="numRequests" min="1" required placeholder="Enter number of requests (e.g., 5)">
+            </div>
+            <div class="input-group">
+                <label for="headPosition">Initial Head Position (0-200)</label>
+                <input type="number" id="headPosition" min="0" max="200" required placeholder="Enter head position (e.g., 50)">
+            </div>
+            <div class="input-group">
+                <label for="requests">Request Queue (comma-separated, 0-200)</label>
+                <input type="text" id="requests" required placeholder="Enter requests (e.g., 50, 75, 100, 125, 150)">
+            </div>
+            <div class="button-container">
+                <button onclick="calculate()">Run Simulation</button>
+            </div>
+        </div>
+
+        <div class="results" id="results"></div>
+    </div>
+
+    <script>
+        function calculate() {
+            const resultsDiv = document.getElementById('results');
+            resultsDiv.innerHTML = '';
+
+            // Input validation
+            const n = parseInt(document.getElementById('numRequests').value);
+            const hp = parseInt(document.getElementById('headPosition').value);
+            const requestsInput = document.getElementById('requests').value;
+            const requests = requestsInput.split(',')
+                .map(x => parseInt(x.trim()))
+                .filter(x => !isNaN(x));
+
+            // Enhanced validation
+            if (isNaN(n) || n <= 0) {
+                showError('Please enter a valid number of requests (greater than 0)');
+                return;
+            }
+            if (isNaN(hp) || hp < 0 || hp > 200) {
+                showError('Head position must be between 0 and 200');
+                return;
+            }
+            if (requests.length !== n) {
+                showError(`Please enter exactly ${n} request positions`);
+                return;
+            }
+            if (requests.some(r => isNaN(r) || r < 0 || r > 200)) {
+                showError('All request positions must be numbers between 0 and 200');
+                return;
+            }
+
+            // Calculate and display results
+            const algorithms = [
+                { name: 'FCFS', fn: FCFS },
+                { name: 'SSTF', fn: SSTF },
+                { name: 'SCAN', fn: SCAN },
+                { name: 'C-SCAN', fn: C_SCAN },
+                { name: 'LOOK', fn: LOOK },
+                { name: 'C-LOOK', fn: C_LOOK }
+            ];
+
+            algorithms.forEach(algo => {
+                const result = algo.fn(hp, [...requests]);
+                resultsDiv.innerHTML += `
+                    <div class="algorithm-result">
+                        <h3>${algo.name}</h3>
+                        <p>Total Seek Time: ${result.total} units</p>
+                        <p>Average Seek Time: ${result.avg.toFixed(2)} units</p>
+                        <p class="seek-sequence">Seek Sequence: ${hp} → ${result.sequence.join(' → ')}</p>
+                    </div>`;
+            });
+        }
+
+        function showError(message) {
+            const resultsDiv = document.getElementById('results');
+            resultsDiv.innerHTML = `<div class="error">${message}</div>`;
+        }
+
+        function FCFS(hp, requests) {
+            let total = 0, pos = hp, sequence = [];
+            for (let request of requests) {
+                total += Math.abs(request - pos);
+                pos = request;
+                sequence.push(pos);
+            }
+            return { total, avg: total / requests.length, sequence };
+        }
+
+        function SSTF(hp, requests) {
+            let reqs = [...requests], total = 0, pos = hp, sequence = [];
+            while (reqs.length > 0) {
+                let minDist = Infinity, nextReq = null, nextIndex = -1;
+                for (let i = 0; i < reqs.length; i++) {
+                    let dist = Math.abs(pos - reqs[i]);
+                    if (dist < minDist) {
+                        minDist = dist;
+                        nextReq = reqs[i];
+                        nextIndex = i;
+                    }
+                }
+                total += minDist;
+                pos = nextReq;
+                sequence.push(pos);
+                reqs.splice(nextIndex, 1);
+            }
+            return { total, avg: total / requests.length, sequence };
+        }
+
+        function SCAN(hp, requests) {
+            let reqs = [...requests], total = 0, pos = hp, sequence = [];
+            const end = 200, start = 0;
+            reqs.sort((a, b) => a - b);
+            for (let i = pos; i <= end; i++) {
+                if (reqs.includes(i)) {
+                    total += Math.abs(pos - i);
+                    pos = i;
+                    sequence.push(pos);
+                    reqs.splice(reqs.indexOf(i), 1);
+                }
+            }
+            if (pos !== end) {
+                total += Math.abs(pos - end);
+                pos = end;
+                sequence.push(end);
+            }
+            for (let i = end; i >= start; i--) {
+                if (reqs.includes(i)) {
+                    total += Math.abs(pos - i);
+                    pos = i;
+                    sequence.push(pos);
+                    reqs.splice(reqs.indexOf(i), 1);
+                }
+            }
+            return { total, avg: total / requests.length, sequence };
+        }
+
+        function C_SCAN(hp, requests) {
+            let reqs = [...requests], total = 0, pos = hp, sequence = [];
+            const end = 200, start = 0;
+            reqs.sort((a, b) => a - b);
+            for (let i = pos; i <= end; i++) {
+                if (reqs.includes(i)) {
+                    total += Math.abs(pos - i);
+                    pos = i;
+                    sequence.push(pos);
+                    reqs.splice(reqs.indexOf(i), 1);
+                }
+            }
+            total += Math.abs(pos - end);
+            pos = end;
+            sequence.push(end);
+            total += Math.abs(end - start);
+            pos = start;
+            sequence.push(start);
+            for (let i = start; i <= hp; i++) {
+                if (reqs.includes(i)) {
+                    total += Math.abs(pos - i);
+                    pos = i;
+                    sequence.push(pos);
+                    reqs.splice(reqs.indexOf(i), 1);
+                }
+            }
+            return { total, avg: total / requests.length, sequence };
+        }
+
+        function LOOK(hp, requests) {
+            let reqs = [...requests], total = 0, pos = hp, sequence = [];
+            reqs.sort((a, b) => a - b);
+            const end = Math.max(...requests), start = Math.min(...requests);
+            for (let i = pos; i <= end; i++) {
+                if (reqs.includes(i)) {
+                    total += Math.abs(pos - i);
+                    pos = i;
+                    sequence.push(pos);
+                    reqs.splice(reqs.indexOf(i), 1);
+                }
+            }
+            for (let i = end; i >= start; i--) {
+                if (reqs.includes(i)) {
+                    total += Math.abs(pos - i);
+                    pos = i;
+                    sequence.push(pos);
+                    reqs.splice(reqs.indexOf(i), 1);
+                }
+            }
+            return { total, avg: total / requests.length, sequence };
+        }
+
+        function C_LOOK(hp, requests) {
+            let reqs = [...requests], total = 0, pos = hp, sequence = [];
+            reqs.sort((a, b) => a - b);
+            const end = Math.max(...requests), start = Math.min(...requests);
+            for (let i = pos; i <= end; i++) {
+                if (reqs.includes(i)) {
+                    total += Math.abs(pos - i);
+                    pos = i;
+                    sequence.push(pos);
+                    reqs.splice(reqs.indexOf(i), 1);
+                }
+            }
+            total += Math.abs(pos - start);
+            pos = start;
+            sequence.push(start);
+            for (let i = start; i <= hp; i++) {
+                if (reqs.includes(i)) {
+                    total += Math.abs(pos - i);
+                    pos = i;
+                    sequence.push(pos);
+                    reqs.splice(reqs.indexOf(i), 1);
+                }
+            }
+            return { total, avg: total / requests.length, sequence };
+        }
+    </script>
+</body>
+</html>
